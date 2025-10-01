@@ -9,6 +9,11 @@ ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_ENABLE_STATIC_IP_INFO=false
 ENV STREAMLIT_SERVER_FOLDER_CACHE_DIR=/tmp/streamlit_cache
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+ENV STREAMLIT_BROWSER_SERVER_ADDRESS=0.0.0.0
+ENV STREAMLIT_SERVER_HEADLESS=true
+
+# Adicionar um argumento de build para forçar a reconstrução do cache
+ARG CACHE_BUST=1
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -23,8 +28,8 @@ RUN pip cache purge && pip install --upgrade pip && pip install --no-cache-dir -
 
 COPY . .
 
-# Copiar o config.toml para o diretório .streamlit dentro do HOME
-RUN mkdir -p ${HOME}/.streamlit && cp .streamlit/config.toml ${HOME}/.streamlit/config.toml
+# Remover o diretório .streamlit local, pois as configurações serão via ENV
+RUN rm -rf .streamlit
 
 EXPOSE 8501
 
