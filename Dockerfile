@@ -13,7 +13,7 @@ ENV STREAMLIT_BROWSER_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_HEADLESS=true
 
 # Adicionar um argumento de build para forçar a reconstrução do cache
-ARG CACHE_BUST=2
+ARG CACHE_BUST=3
 
 # Usar o usuário root para garantir permissões de escrita
 USER root
@@ -29,10 +29,13 @@ COPY requirements.txt ./
 # Limpar o cache do pip e instalar as dependências
 RUN pip cache purge && pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Instalar langchain-groq e langchain-community explicitamente
+RUN pip install --no-cache-dir langchain-groq langchain-community
 
-# Remover o diretório .streamlit local, pois as configurações serão via ENV
-RUN rm -rf .streamlit
+# Verificar se langchain-groq foi instalado
+RUN pip show langchain-groq
+
+COPY . .
 
 EXPOSE 8501
 
