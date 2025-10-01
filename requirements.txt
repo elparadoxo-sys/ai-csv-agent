@@ -10,3 +10,6 @@ langchain-community
 
 matplotlib
 
+
+seaborn
+
