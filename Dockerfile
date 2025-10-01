@@ -13,7 +13,10 @@ ENV STREAMLIT_BROWSER_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_HEADLESS=true
 
 # Adicionar um argumento de build para forçar a reconstrução do cache
-ARG CACHE_BUST=1
+ARG CACHE_BUST=2
+
+# Usar o usuário root para garantir permissões de escrita
+USER root
 
 RUN apt-get update && apt-get install -y \
     build-essential \
