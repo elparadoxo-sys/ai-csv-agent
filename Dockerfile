@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Criar o diretório .streamlit e copiar o config.toml
+RUN mkdir -p /root/.streamlit && cp .streamlit/config.toml /root/.streamlit/config.toml
+
 EXPOSE 8501
 
 CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
