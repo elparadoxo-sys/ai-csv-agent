@@ -18,11 +18,12 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements.txt ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Limpar o cache do pip e instalar as dependências
+RUN pip cache purge && pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Criar o diretório .streamlit e copiar o config.toml para o diretório HOME
+# Copiar o config.toml para o diretório .streamlit dentro do HOME
 RUN mkdir -p ${HOME}/.streamlit && cp .streamlit/config.toml ${HOME}/.streamlit/config.toml
 
 EXPOSE 8501
