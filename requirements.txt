@@ -1,3 +1,9 @@
-altair
-pandas
 streamlit
+langchain
+openai
+python-dotenv
+pandas
+langchain-experimental
+langchain-groq
+langchain-community
+
