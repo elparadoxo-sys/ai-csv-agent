@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
-from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
+import tempfile
 from langchain_groq import ChatGroq
+from langchain_community.agent_toolkits import create_sql_agent
+from langchain_community.utilities import SQLDatabase
 from dotenv import load_dotenv
 
 # Carregar variáveis de ambiente
@@ -42,28 +41,45 @@ def main():
         
         if uploaded_file is not None:
             try:
-                # Carregar o DataFrame
-                df = pd.read_csv(uploaded_file)
+                # Salvar o arquivo CSV temporariamente
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_file:
+                    tmp_file.write(uploaded_file.getvalue())
+                    tmp_file_path = tmp_file.name
+                
+                # Carregar o CSV para um DataFrame (apenas para preview e info básicas)
+                df_preview = pd.read_csv(tmp_file_path, nrows=5) # Carrega apenas algumas linhas para preview
+                df_info = pd.read_csv(tmp_file_path) # Carrega o arquivo inteiro para informações básicas
+
                 st.success(f"✅ Arquivo carregado com sucesso!")
-                st.info(f"📊 **Dimensões:** {df.shape[0]} linhas × {df.shape[1]} colunas")
+                st.info(f"📊 **Dimensões:** {df_info.shape[0]} linhas × {df_info.shape[1]} colunas")
                 
                 # Mostrar preview dos dados
                 st.subheader("👀 Preview dos Dados")
-                st.dataframe(df.head(), use_container_width=True)
+                st.dataframe(df_preview, use_container_width=True)
                 
                 # Informações básicas sobre o dataset
                 st.subheader("📈 Informações Básicas")
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Linhas", df.shape[0])
-                    st.metric("Colunas", df.shape[1])
+                    st.metric("Linhas", df_info.shape[0])
+                    st.metric("Colunas", df_info.shape[1])
                 with col2:
-                    st.metric("Valores Nulos", df.isnull().sum().sum())
-                    st.metric("Memória (MB)", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f}")
+                    st.metric("Valores Nulos", df_info.isnull().sum().sum())
+                    st.metric("Memória (MB)", f"{df_info.memory_usage(deep=True).sum() / 1024**2:.2f}")
                 
-                # Armazenar o DataFrame no session state
-                st.session_state.df = df
+                # Criar um banco de dados SQLite em memória a partir do CSV
+                db_path = os.path.join(tempfile.gettempdir(), "temp_db.db")
+                engine_str = f"sqlite:///{db_path}"
+                db = SQLDatabase.from_uri(engine_str)
+                
+                # Carregar o CSV para o SQLite em chunks para evitar estouro de memória
+                chunksize = 10000  # Ajuste conforme necessário
+                for i, chunk in enumerate(pd.read_csv(tmp_file_path, chunksize=chunksize)):
+                    chunk.to_sql("csv_data", db.engine, if_exists="append", index=False)
+                
+                st.session_state.db = db
                 st.session_state.file_uploaded = True
+                st.session_state.tmp_file_path = tmp_file_path # Guardar para limpeza
                 
             except Exception as e:
                 st.error(f"❌ Erro ao carregar o arquivo: {str(e)}")
@@ -79,10 +95,7 @@ def main():
         # Mostrar histórico de mensagens
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
-                if message["role"] == "assistant" and "plot" in message:
-                    st.pyplot(message["plot"])
-                else:
-                    st.markdown(message["content"])
+                st.markdown(message["content"])
         
         # Input do usuário
         if prompt := st.chat_input("Faça uma pergunta sobre os dados..."):
@@ -95,25 +108,26 @@ def main():
             with st.chat_message("assistant"):
                 with st.spinner("🤔 Analisando os dados..."):
                     try:
-                        # Criar o agente LangChain
+                        # Criar o agente LangChain SQL
                         llm = ChatGroq(temperature=0, groq_api_key=groq_api_key)
-                        agent = create_pandas_dataframe_agent(
-                            llm, 
-                            st.session_state.df, 
+                        agent_executor = create_sql_agent(
+                            llm=llm,
+                            db=st.session_state.db,
+                            agent_type="openai-tools", # Ou "openai-functions" dependendo da versão
                             verbose=False,
                             allow_dangerous_code=True
                         )
                         
                         # Executar a consulta
-                        response = agent.run(prompt)
+                        response = agent_executor.invoke({"input": prompt})
                         
                         # Exibir a resposta
-                        st.markdown(response)
+                        st.markdown(response["output"])
                         
                         # Adicionar ao histórico
                         st.session_state.messages.append({
                             "role": "assistant", 
-                            "content": response
+                            "content": response["output"]
                         })
                         
                     except Exception as e:
@@ -131,11 +145,6 @@ def main():
             - Quais são os tipos de dados de cada coluna?
             - Mostre as estatísticas descritivas dos dados
             - Quantos valores únicos existem em cada coluna?
-            
-            **Visualizações:**
-            - Crie um histograma da coluna [nome_da_coluna]
-            - Mostre a correlação entre as variáveis numéricas
-            - Faça um gráfico de dispersão entre [coluna1] e [coluna2]
             
             **Análise de Padrões:**
             - Existem outliers nos dados?
@@ -164,3 +173,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
