@@ -100,7 +100,7 @@ def main():
                         agent = create_pandas_dataframe_agent(
                             llm, 
                             st.session_state.df, 
-                            verbose=True,
+                            verbose=False,
                             allow_dangerous_code=True
                         )
                         
