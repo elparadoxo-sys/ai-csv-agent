@@ -47,25 +47,38 @@ def main():
                     tmp_file_path = tmp_file.name
                 
                 # Carregar o CSV para um DataFrame (apenas para preview e info básicas)
-                df_preview = pd.read_csv(tmp_file_path, nrows=5) # Carrega apenas algumas linhas para preview
-                df_info = pd.read_csv(tmp_file_path) # Carrega o arquivo inteiro para informações básicas
+                # Carrega apenas algumas linhas para preview e informações básicas para evitar estouro de memória
+                df_preview = pd.read_csv(tmp_file_path, nrows=5)
+                
+                # Para obter o número total de linhas e colunas sem carregar tudo na memória
+                # Lendo o arquivo em chunks para contar linhas e colunas
+                total_rows = 0
+                total_cols = 0
+                # Usar um iterador para evitar carregar o arquivo inteiro de uma vez
+                csv_iterator = pd.read_csv(tmp_file_path, chunksize=1000, iterator=True)
+                for i, chunk in enumerate(csv_iterator):
+                    if i == 0:
+                        total_cols = chunk.shape[1]
+                    total_rows += chunk.shape[0]
 
                 st.success(f"✅ Arquivo carregado com sucesso!")
-                st.info(f"📊 **Dimensões:** {df_info.shape[0]} linhas × {df_info.shape[1]} colunas")
+                st.info(f"📊 **Dimensões:** {total_rows} linhas × {total_cols} colunas")
                 
-                # Mostrar preview dos dados
+                # Mostrar preview dos Dados
                 st.subheader("👀 Preview dos Dados")
                 st.dataframe(df_preview, use_container_width=True)
                 
-                # Informações básicas sobre o dataset
+                # Informações básicas sobre o dataset (usando as contagens de chunks)
                 st.subheader("📈 Informações Básicas")
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Linhas", df_info.shape[0])
-                    st.metric("Colunas", df_info.shape[1])
+                    st.metric("Linhas", total_rows)
+                    st.metric("Colunas", total_cols)
                 with col2:
-                    st.metric("Valores Nulos", df_info.isnull().sum().sum())
-                    st.metric("Memória (MB)", f"{df_info.memory_usage(deep=True).sum() / 1024**2:.2f}")
+                    # Para valores nulos e memória, precisaríamos carregar o DF completo ou usar uma abordagem mais complexa.
+                    # Por simplicidade e para evitar estouro de memória, vamos omitir por enquanto ou usar uma estimativa.
+                    st.metric("Valores Nulos (Estimativa)", "N/A") # Não é possível calcular sem carregar tudo
+                    st.metric("Memória (Estimativa)", "N/A") # Não é possível calcular sem carregar tudo
                 
                 # Criar um banco de dados SQLite em memória a partir do CSV
                 db_path = os.path.join(tempfile.gettempdir(), "temp_db.db")
@@ -73,8 +86,9 @@ def main():
                 db = SQLDatabase.from_uri(engine_str)
                 
                 # Carregar o CSV para o SQLite em chunks para evitar estouro de memória
-                chunksize = 10000  # Ajuste conforme necessário
-                for i, chunk in enumerate(pd.read_csv(tmp_file_path, chunksize=chunksize)):
+                chunksize = 1000  # Ajuste conforme necessário
+                csv_iterator_to_sql = pd.read_csv(tmp_file_path, chunksize=chunksize, iterator=True)
+                for i, chunk in enumerate(csv_iterator_to_sql):
                     chunk.to_sql("csv_data", db.engine, if_exists="append", index=False)
                 
                 st.session_state.db = db
