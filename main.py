@@ -80,17 +80,19 @@ def main():
                     st.metric("Valores Nulos (Estimativa)", "N/A") # Não é possível calcular sem carregar tudo
                     st.metric("Memória (Estimativa)", "N/A") # Não é possível calcular sem carregar tudo
                 
-                # Criar um banco de dados SQLite em memória a partir do CSV
+                # Criar um banco de dados SQLite em disco (temporário) a partir do CSV
                 db_path = os.path.join(tempfile.gettempdir(), "temp_db.db")
-                engine_str = f"sqlite:///{db_path}"
-                db = SQLDatabase.from_uri(engine_str)
+                from sqlalchemy import create_engine
+                engine = create_engine(f"sqlite:///{db_path}")
                 
                 # Carregar o CSV para o SQLite em chunks para evitar estouro de memória
                 chunksize = 1000  # Ajuste conforme necessário
                 csv_iterator_to_sql = pd.read_csv(tmp_file_path, chunksize=chunksize, iterator=True)
                 for i, chunk in enumerate(csv_iterator_to_sql):
-                    chunk.to_sql("csv_data", db.engine, if_exists="append", index=False)
+                    chunk.to_sql("csv_data", engine, if_exists="append", index=False)
                 
+                # Criar o objeto SQLDatabase da LangChain com o engine
+                db = SQLDatabase(engine=engine)
                 st.session_state.db = db
                 st.session_state.file_uploaded = True
                 st.session_state.tmp_file_path = tmp_file_path # Guardar para limpeza
