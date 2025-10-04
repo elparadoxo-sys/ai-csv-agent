@@ -1,18 +1,17 @@
 streamlit
 langchain
-openai
-python-dotenv
-pandas
+langchain-core
 langchain-experimental
 langchain-groq
 langchain-community
-
-
+openai
+python-dotenv
+pandas
+numpy
 matplotlib
-
-
 seaborn
-
-
+plotly
+scipy
+scikit-learn
 sqlalchemy
 
