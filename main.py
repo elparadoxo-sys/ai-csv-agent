@@ -1,15 +1,45 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
+import tempfile
+import json
+from datetime import datetime
+import sys
+
+# Verificar e instalar dependências
+def check_and_install_dependencies():
+    required_packages = {
+        'plotly': 'plotly',
+        'matplotlib': 'matplotlib',
+        'seaborn': 'seaborn',
+        'scipy': 'scipy',
+        'scikit-learn': 'sklearn',
+        'langchain': 'langchain',
+        'langchain-groq': 'langchain_groq',
+        'python-dotenv': 'dotenv'
+    }
+    
+    missing_packages = []
+    for package_name, import_name in required_packages.items():
+        try:
+            __import__(import_name.split('.')[0])
+        except ImportError:
+            missing_packages.append(package_name)
+    
+    if missing_packages:
+        st.error(f"⚠️ Pacotes faltando: {', '.join(missing_packages)}")
+        st.info("Execute: `pip install " + " ".join(missing_packages) + "`")
+        st.stop()
+
+check_and_install_dependencies()
+
+# Importações principais
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import os
-import tempfile
-import json
-from datetime import datetime
 from langchain_groq import ChatGroq
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.tools import Tool
@@ -279,7 +309,7 @@ class GraphGenerator:
 
 def main():
     st.set_page_config(
-        page_title="Agente de Análise de arquivos CSV",
+        page_title="🤖 Agente EDA Completo",
         page_icon="🤖",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -434,7 +464,11 @@ def main():
             st.session_state.messages = []
         
         # Template do agente
+        columns_list = ", ".join(st.session_state.df.columns)
+        
         template = """Você é um agente especialista em Análise Exploratória de Dados (EDA).
+
+Colunas disponíveis no dataset: """ + columns_list + """
 
 Você tem acesso às seguintes ferramentas:
 {tools}
@@ -456,17 +490,15 @@ INSTRUÇÕES IMPORTANTES:
 3. SEMPRE que realizar uma análise, interprete os resultados e tire conclusões
 4. Quando perguntado sobre conclusões, use a ferramenta 'obter_conclusoes'
 5. Seja claro, objetivo e forneça insights acionáveis
-6. Colunas disponíveis: {columns}
 
-Chat History:
-{chat_history}
+Begin!
 
 Question: {input}
-{agent_scratchpad}"""
+Thought: {agent_scratchpad}"""
 
         prompt = PromptTemplate(
             template=template,
-            input_variables=["input", "agent_scratchpad", "chat_history", "tools", "tool_names", "columns"]
+            input_variables=["input", "agent_scratchpad", "tools", "tool_names"]
         )
         
         # Criar agente
@@ -480,10 +512,10 @@ Question: {input}
         agent_executor = AgentExecutor(
             agent=agent,
             tools=tools,
-            memory=st.session_state.memory,
             verbose=True,
             handle_parsing_errors=True,
-            max_iterations=10
+            max_iterations=10,
+            return_intermediate_steps=False
         )
         
         # Interface de chat
@@ -504,9 +536,9 @@ Question: {input}
                     try:
                         st.session_state.current_plot = None
                         
+                        # Invocar agente sem parâmetros extras
                         response = agent_executor.invoke({
-                            "input": prompt_input,
-                            "columns": ", ".join(st.session_state.df.columns)
+                            "input": prompt_input
                         })
                         
                         st.markdown(response["output"])
