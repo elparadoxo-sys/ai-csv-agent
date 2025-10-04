@@ -125,7 +125,7 @@ def main():
                 with st.spinner("🤔 Analisando os dados..."):
                     try:
                         # Criar o agente LangChain SQL
-                        llm = ChatGroq(temperature=0, groq_api_key=groq_api_key, model_name='mixtral-8x7b-32768')
+                        llm = ChatGroq(temperature=0, groq_api_key=groq_api_key, model_name='llama-3.3-70b-versatile')
                         agent_executor = create_sql_agent(
                             llm=llm,
                             db=st.session_state.db,
