@@ -129,10 +129,19 @@ def main():
                         agent_executor = create_sql_agent(
                             llm=llm,
                             db=st.session_state.db,
-                            agent_type="openai-tools", # Ou "openai-functions" dependendo da versão
+                            agent_type="openai-tools",
                             verbose=False,
-                            allow_dangerous_code=True
+                            allow_dangerous_code=True,
+                            agent_executor_kwargs={
+                                "handle_parsing_errors": True
+                            },
+                            system_message="""
+Você é um agente de IA especializado em analisar dados de CSVs. Sua tarefa é responder a perguntas sobre os dados da tabela \'csv_data\' em um banco de dados SQLite. 
+Use as ferramentas disponíveis para inspecionar o esquema da tabela, gerar e executar consultas SQL para extrair as informações necessárias. 
+Seja conciso e direto nas suas respostas. Se uma pergunta não puder ser respondida com os dados disponíveis, diga que não sabe.
+"""
                         )
+
                         
                         # Executar a consulta
                         response = agent_executor.invoke({"input": prompt})
