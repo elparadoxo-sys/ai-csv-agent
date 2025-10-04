@@ -279,7 +279,7 @@ class GraphGenerator:
 
 def main():
     st.set_page_config(
-        page_title="🤖 Agente EDA Completo",
+        page_title="Agente de Análise de arquivos CSV",
         page_icon="🤖",
         layout="wide",
         initial_sidebar_state="expanded"
