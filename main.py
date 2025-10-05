@@ -505,7 +505,7 @@ Thought: {agent_scratchpad}"""
         llm = ChatGroq(
             temperature=0,
             groq_api_key=groq_api_key,
-            model_name='groq/compound'
+            model_name='meta-llama/llama-prompt-guard-2-86m'
         )
         
         agent = create_react_agent(llm, tools, prompt)
