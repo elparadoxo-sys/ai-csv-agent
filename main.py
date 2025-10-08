@@ -309,13 +309,13 @@ class GraphGenerator:
 
 def main():
     st.set_page_config(
-        page_title="🤖 Agente EDA Completo",
+        page_title="Agente de Análise de Arquivos CSV - Conrado Gornic",
         page_icon="🤖",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    st.title("🤖 Agente de Análise Exploratória de Dados (EDA)")
+    st.title("Agente de Análise de Arquivos CSV - Conrado Gornic")
     st.markdown("""
     Sistema completo de análise de dados com **IA, Geração de Gráficos e Memória de Conclusões**.
     """)
